@@ -12,6 +12,7 @@ from .export_renderers import (
     PhoBBCodeRenderer,
     PhoMarkdownRenderer,
 )
+from .model import PhoPage, split_markdown_frontmatter
 from .presentation import PhoPresentationParser
 from .renderer import PhoPageRenderer
 from .wizard import PhoPageWizard
@@ -327,6 +328,22 @@ def style_options(defaults):
     )
 
 
+def activation_warning(source):
+    try:
+        PhoPage.parse(source)
+        return ""
+    except ValueError:
+        _frontmatter, body = split_markdown_frontmatter(source)
+        if not body.strip():
+            return ""
+    return (
+        "This Markdown page already contains body text. Enabling PHO "
+        "page will interpret that body as the thread's original post. "
+        "The raw text will not be rewritten unless you apply changes "
+        "in the PHO wizard."
+    )
+
+
 def register(api):
     api.register_page_type(
         PageTypeContribution(
@@ -343,6 +360,7 @@ def register(api):
             parser_factory=PhoPresentationParser,
             renderer_factory=PhoPageRenderer,
             wizard_factory=PhoPageWizard,
+            activation_warning=activation_warning,
         )
     )
     api.register_page_renderer(

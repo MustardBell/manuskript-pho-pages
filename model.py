@@ -6,6 +6,30 @@ class PhoModelError(ValueError):
     pass
 
 
+def split_markdown_frontmatter(source):
+    """Return a Markdown frontmatter prefix and the remaining body."""
+    normalized = str(source or "").replace("\r\n", "\n").replace(
+        "\r", "\n"
+    )
+    patterns = (
+        r"\A\ufeff?---[ \t]*\n.*?^(?:---|\.\.\.)[ \t]*(?:\n|$)",
+        r"\A\ufeff?\+\+\+[ \t]*\n.*?^\+\+\+[ \t]*(?:\n|$)",
+    )
+    match = next((
+        match
+        for pattern in patterns
+        for match in [re.search(pattern, normalized, re.M | re.S)]
+        if match is not None
+    ), None)
+    if match is None:
+        return "", normalized
+    end = match.end()
+    spacing = re.match(r"(?:[ \t]*\n)*", normalized[end:])
+    if spacing is not None:
+        end += spacing.end()
+    return normalized[:end], normalized[end:]
+
+
 @dataclass
 class PhoReply:
     metadata: list[str] = field(default_factory=lambda: ["User"])
@@ -221,6 +245,13 @@ class PhoPage:
             welcome=True,
             threads=[PhoThread(original_post=str(original_post))],
         )
+
+    @classmethod
+    def initialize_from_markdown(cls, source):
+        prefix, body = split_markdown_frontmatter(source)
+        page = cls.initialize(body if body.strip() else "")
+        page.prefix = prefix
+        return page
 
     def _parse_settings(self, source):
         raw = source[len("SETTINGS"):].lstrip("\t ")

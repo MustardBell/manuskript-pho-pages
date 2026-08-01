@@ -83,7 +83,7 @@ class PhoWizardController(QObject):
                 status = ""
                 dirty = False
             except PhoModelError as error:
-                if is_pho_page(source) or has_pho_wrapper(source):
+                if is_pho_page(source):
                     self.page = None
                     view.statusLabel.setText(str(error))
                     view.statusLabel.setStyleSheet("color: #b00020;")
@@ -93,7 +93,7 @@ class PhoWizardController(QObject):
                     self._loadedSource = source
                     self._dirty = False
                     return
-                self.page = PhoPage.initialize(source)
+                self.page = PhoPage.initialize_from_markdown(source)
                 status = view.tr(
                     "Apply to wrap this text as a PHO page."
                 )
@@ -370,13 +370,3 @@ class PhoWizardController(QObject):
         source = self._loadedSource
         self._loadedSource = ""
         self.load_source(source)
-
-
-def has_pho_wrapper(source):
-    normalized = str(source or "").replace("\r\n", "\n").replace(
-        "\r", "\n"
-    )
-    return (
-        "PHO Interlude" in normalized
-        or "EOPHO Interlude" in normalized
-    )

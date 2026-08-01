@@ -469,4 +469,13 @@ class PhoPresentationParser:
     """Plugin parser contract: raw PHO directives to semantic model."""
 
     def parse(self, source):
-        return PhoPresentationBuilder().build(PhoPage.parse(source))
+        try:
+            page = PhoPage.parse(source)
+        except PhoModelError:
+            normalized = str(source or "").replace(
+                "\r\n", "\n"
+            ).replace("\r", "\n")
+            if PhoPage.SCENE.search(normalized) is not None:
+                raise
+            page = PhoPage.initialize_from_markdown(normalized)
+        return PhoPresentationBuilder().build(page)
