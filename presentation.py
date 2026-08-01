@@ -81,6 +81,8 @@ class PhoPresentation:
     reader: str
     show_welcome: bool
     threads: tuple[PhoThreadPresentation, ...]
+    posts_per_page: int = 10
+    private_messages: int = 10
     prefix_markdown: str = ""
     suffix_markdown: str = ""
 
@@ -126,9 +128,11 @@ class PhoPresentationBuilder:
             self._build_thread(thread) for thread in page.threads
         )
         return PhoPresentation(
-            reader=self.settings.get("reader", "Reader"),
+            reader=self.settings.get("reader", ""),
             show_welcome=page.welcome,
             threads=threads,
+            posts_per_page=self._integer_setting("posts", 10),
+            private_messages=self._integer_setting("messages", 10),
             prefix_markdown=page.prefix,
             suffix_markdown=page.suffix,
         )
@@ -165,7 +169,7 @@ class PhoPresentationBuilder:
         replies = self._process_replies(thread.replies)
         original_post = None
         if not thread.no_original_post:
-            author = self._author(thread.poster, self.date_op, original=True)
+            author = self._author(thread.poster, self.date_op)
             original_post = PhoPostPresentation(
                 author=author,
                 timestamp=self._timestamp(self.date_op),
@@ -175,7 +179,7 @@ class PhoPresentationBuilder:
                 original=True,
             )
         return PhoThreadPresentation(
-            topic=thread.topic or "A question",
+            topic=thread.topic,
             boards=tuple(
                 value for value in thread.board.split("=>") if value
             ),
@@ -311,13 +315,9 @@ class PhoPresentationBuilder:
             ))
         return tuple(pages)
 
-    def _author(self, user, date, original=False):
+    def _author(self, user, date):
         user = self._resolve_alias(user.strip())
         values = self.users.setdefault(user, {})
-        if original:
-            tags = values.setdefault("tag", [])
-            if "Original Poster" not in tags:
-                tags.insert(0, "Original Poster")
         visible = []
         for value in values.get("tag", []):
             tag, separator, timestamp = value.rpartition(":::")

@@ -2,7 +2,7 @@ import html
 
 from manuskript.plugins import RenderedDocument
 
-from .export_renderers import DEFAULT_STYLE, PhoMarkdownRenderer
+from .export_renderers import MARKDOWN_STYLE, PhoMarkdownRenderer
 from .presentation import PhoPresentation
 
 try:
@@ -29,13 +29,13 @@ class PhoPageRenderer:
         markdown = PhoMarkdownRenderer().render(
             model,
             "markdown",
-            DEFAULT_STYLE,
+            {},
         ).content
         if MARKDOWN is None:
             body = "<pre>{}</pre>".format(html.escape(markdown))
         else:
             body = MARKDOWN.markdown(markdown)
-            separator = html.escape(DEFAULT_STYLE["separator"])
+            separator = html.escape(MARKDOWN_STYLE["separator"])
             body = body.replace(
                 "<p>{}</p>".format(separator),
                 '<p class="pho-separator">{}</p>'.format(separator),
