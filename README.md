@@ -4,7 +4,7 @@
 
 PHO Pages is a plugin for [MustardBell's Manuskript fork](https://github.com/MustardBell/manuskript). It turns structured Parahumans Online source text into an editable PHO page with a rendered reading view, a form-based wizard, and format-aware compile output.
 
-The plugin requires Manuskript Plugin API 1, which is currently provided by the `develop` branch of that fork. It does not work with the original [`olivierkes/manuskript`](https://github.com/olivierkes/manuskript), which does not provide this plugin API.
+The plugin requires Manuskript Plugin API 1. Use it with a version of [MustardBell's Manuskript fork](https://github.com/MustardBell/manuskript) that provides that API. The original [`olivierkes/manuskript`](https://github.com/olivierkes/manuskript) does not currently provide the plugin API and is therefore not compatible with this plugin.
 
 ## What it provides
 
