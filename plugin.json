@@ -1,0 +1,9 @@
+{
+  "id": "manuskript.pho-pages",
+  "name": "PHO Pages",
+  "version": "1.0.0",
+  "api_version": 1,
+  "entry_point": "plugin:register",
+  "description": "Adds per-page PHO detection, rendering, editing, and export processing.",
+  "author": "MustardBell"
+}
