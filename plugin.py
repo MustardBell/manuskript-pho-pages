@@ -3,6 +3,7 @@ from manuskript.plugins import (
     OptionField,
     PageRendererContribution,
     PageTypeContribution,
+    PluginSettingsContribution,
 )
 
 from .converter import is_pho_page
@@ -15,6 +16,7 @@ from .export_renderers import (
 from .model import PhoPage, split_markdown_frontmatter
 from .presentation import PhoPresentationParser
 from .renderer import PhoPageRenderer
+from .settings_panel import build_settings_panel
 from .wizard import PhoPageWizard
 
 
@@ -395,5 +397,18 @@ def register(api):
             target_formats=("bbcode",),
             options=style_options(BBCODE_STYLE),
             priority=100,
+        )
+    )
+    api.register_settings_panel(
+        PluginSettingsContribution(
+            descriptor=ExtensionDescriptor(
+                id="manuskript.pho-settings",
+                name="PHO page rendering",
+                description=(
+                    "Choose which PHO renderer produces each export "
+                    "format, and configure their styles."
+                ),
+            ),
+            widget_factory=build_settings_panel,
         )
     )

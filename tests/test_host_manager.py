@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-from PyQt5.QtWidgets import QApplication
-
 from manuskript.plugins.runtime import PluginRuntime, PluginStatus
 from manuskript.services.plugin_preferences import (
     InMemoryPluginPreferences,
@@ -12,7 +10,9 @@ from manuskript.services.plugin_preferences import (
 from manuskript.services.plugin_options import InMemoryPluginOptionStore
 from manuskript.exporter.page_routes import PageRendererRoute
 from manuskript.tests.plugins.test_runtime import create_plugin
+from manuskript.plugins.api import PluginSettingsContext
 from manuskript.ui.plugins.manager import PluginManagerDialog
+from manuskript.ui.plugins.page_routing import PageRoutingGateway
 from manuskript.ui.plugins.page_types import PageTypeService
 
 
@@ -125,135 +125,108 @@ def test_preinstalled_plugin_can_be_enabled_and_disabled(monkeypatch):
     assert preferences.enabled_plugin_ids == ()
 
 
-def test_manager_exposes_page_renderer_routes_without_another_tools_menu():
-    plugin_root = Path(__file__).parents[2]
+PHO_ID = "manuskript.pho-pages"
+ROUTES = (
+    PageRendererRoute(
+        "plain:markdown", "Plain text", "plain", "markdown", "Manuskript",
+    ),
+    PageRendererRoute(
+        "bbcode:bbcode", "BBCode", "bbcode", "bbcode", "Manuskript",
+    ),
+)
+
+
+def pho_runtime():
     runtime = PluginRuntime(
-        [plugin_root],
-        InMemoryPluginPreferences(["manuskript.pho-pages"]),
+        [Path(__file__).parents[2]],
+        InMemoryPluginPreferences([PHO_ID]),
     )
     runtime.discover()
     runtime.load_enabled()
-    option_store = InMemoryPluginOptionStore()
-    page_types = PageTypeService(runtime.registry, option_store)
+    return runtime
 
-    dialog = PluginManagerDialog(
-        runtime,
-        option_store=option_store,
-        page_types=page_types,
-        export_routes_provider=lambda: (
-            PageRendererRoute(
-                "bbcode:bbcode",
-                "BBCode",
-                "bbcode",
-                "bbcode",
-                "Manuskript",
-            ),
-            PageRendererRoute(
-                "html:html",
-                "HTML",
-                "html",
-                "html",
-                "Manuskript",
-            ),
+
+def pho_panel(runtime, store):
+    """Build PHO's own settings widget the way the manager would."""
+    page_types = PageTypeService(runtime.registry, store)
+    context = PluginSettingsContext(
+        plugin_id=PHO_ID,
+        page_routing=PageRoutingGateway(
+            PHO_ID, runtime.registry, page_types, lambda: ROUTES,
         ),
+        option_store=store,
+        edit_options=lambda *a, **k: None,
+        show_status=lambda *a, **k: None,
     )
+    record = runtime.registry.plugin_records(PHO_ID, "settings_panel")[0]
+    return record.contribution.widget_factory(context, None), context
 
-    assert not dialog.rendererGroup.isHidden()
-    assert dialog.pageTypeCombo.currentData() == "manuskript.pho-page"
 
-    dialog.renderTargetCombo.setCurrentIndex(
-        dialog.renderTargetCombo.findData("html:html")
-    )
-    assert dialog.pageRendererCombo.currentData() == (
-        "manuskript.pho-renderer.markdown"
-    )
-    assert "compatible fallback" in (
-        dialog.pageRendererCombo.currentText()
-    )
+def test_pho_registers_its_own_settings_panel():
+    runtime = pho_runtime()
 
-    dialog.renderTargetCombo.setCurrentIndex(
-        dialog.renderTargetCombo.findData("bbcode:bbcode")
-    )
-    assert dialog.pageRendererCombo.currentData() == (
+    records = runtime.registry.plugin_records(PHO_ID, "settings_panel")
+
+    assert [record.id for record in records] == ["manuskript.pho-settings"]
+
+
+def test_panel_offers_one_renderer_choice_per_export_format():
+    runtime = pho_runtime()
+    panel, _context = pho_panel(runtime, InMemoryPluginOptionStore())
+
+    assert set(panel._combos) == {"plain:markdown", "bbcode:bbcode"}
+    assert panel._combos["bbcode:bbcode"].currentData() == (
         "manuskript.pho-renderer.bbcode"
     )
-    assert "compatible fallback" not in (
-        dialog.pageRendererCombo.currentText()
-    )
-    assert dialog.configureRendererButton.isEnabled()
+    plain = panel._combos["plain:markdown"]
+    assert plain.currentData() == "manuskript.pho-renderer.markdown"
+    assert "compatible fallback" not in plain.currentText()
 
 
-def test_manager_details_scroll_instead_of_clipping_renderer_controls():
-    plugin_root = Path(__file__).parents[2]
-    runtime = PluginRuntime(
-        [plugin_root],
-        InMemoryPluginPreferences(["manuskript.pho-pages"]),
-    )
-    runtime.discover()
-    runtime.load_enabled()
-    option_store = InMemoryPluginOptionStore()
-    dialog = PluginManagerDialog(
-        runtime,
-        option_store=option_store,
-        page_types=PageTypeService(runtime.registry, option_store),
-        export_routes_provider=lambda: (
-            PageRendererRoute(
-                "plain:plain",
-                "Plain text",
-                "plain",
-                "markdown",
-                "Manuskript",
-            ),
-        ),
+def test_panel_saves_the_chosen_renderer():
+    runtime = pho_runtime()
+    store = InMemoryPluginOptionStore()
+    panel, context = pho_panel(runtime, store)
+    combo = panel._combos["bbcode:bbcode"]
+
+    combo.setCurrentIndex(
+        combo.findData("manuskript.pho-renderer.markdown")
     )
 
-    assert dialog.width() >= 960
-    assert dialog.height() >= 700
-    assert dialog.minimumWidth() == 720
-    assert dialog.minimumHeight() == 520
-    assert dialog.detailsScroll.widget() is dialog.detailsWidget
-
-    dialog.resize(dialog.minimumSize())
-    dialog.show()
-    QApplication.processEvents()
-
-    assert dialog.rendererGroup.isVisible()
-    assert dialog.configureRendererButton.isVisible()
-    assert dialog.rendererInfoLabel.text()
-    assert dialog.detailsScroll.verticalScrollBar().maximum() > 0
+    assert context.page_routing.selected(
+        "manuskript.pho-page", "bbcode:bbcode"
+    ) == "manuskript.pho-renderer.markdown"
 
 
-def test_application_manager_uses_the_live_compile_exporter_catalog(
-        MWEmptyProject):
+def test_panel_cannot_route_a_page_type_pho_does_not_own():
+    runtime = pho_runtime()
+    _panel, context = pho_panel(runtime, InMemoryPluginOptionStore())
+
+    assert not context.page_routing.owns("someone.else-page")
+
+
+def test_manager_shows_the_pho_panel_only_under_pho(MWEmptyProject):
     window = MWEmptyProject
-    plugin_id = "manuskript.pho-pages"
     was_enabled = (
-        plugin_id
-        in window.pluginRuntime.preferences.enabled_plugin_ids
+        PHO_ID in window.pluginRuntime.preferences.enabled_plugin_ids
     )
     if not was_enabled:
-        window.pluginRuntime.enable(plugin_id)
+        window.pluginRuntime.enable(PHO_ID)
         window.pluginUi.refresh_contributions()
-    routes = window.pluginUi._export_routes()
 
     window.pluginUi.show_manager()
     dialog = window.pluginUi.manager
     try:
-        displayed = [
-            (
-                dialog.renderTargetCombo.itemText(index),
-                dialog.renderTargetCombo.itemData(index),
-            )
-            for index in range(dialog.renderTargetCombo.count())
-        ]
+        from PyQt5.QtCore import Qt
 
-        assert displayed == [
-            (route.label, route.id) for route in routes
-        ]
-        assert ("BBCode", "bbcode:bbcode") in displayed
-        assert all(label != "bbcode" for label, _route in displayed)
+        for index in range(dialog.pluginList.topLevelItemCount()):
+            item = dialog.pluginList.topLevelItem(index)
+            plugin_id = item.data(0, Qt.UserRole)
+            dialog.pluginList.setCurrentItem(item)
+            has_panel = dialog.pluginPanels.get(plugin_id) is not None
+            assert has_panel == (plugin_id == PHO_ID), plugin_id
     finally:
         dialog.close()
         if not was_enabled:
-            window.pluginRuntime.disable(plugin_id)
+            window.pluginRuntime.disable(PHO_ID)
             window.pluginUi.refresh_contributions()
