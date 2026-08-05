@@ -8,7 +8,8 @@
   "author": "MustardBell",
   "homepage": "https://github.com/MustardBell/manuskript-pho-pages",
   "requires": [
-    "markup.bbcode"
+    "markup.bbcode",
+    "ui.export_routing"
   ],
   "media_types": [
     "text/markdown",
