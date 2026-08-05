@@ -16,10 +16,9 @@
     "text/x-bbcode"
   ],
   "produces": [
-    "text/markdown"
-  ],
-  "consumes": [
+    "text/markdown",
     "text/x-bbcode"
   ],
+  "consumes": [],
   "transforms": []
 }

@@ -199,16 +199,26 @@ def test_panel_offers_one_renderer_choice_per_export_format():
     runtime = pho_runtime()
     panel, _gateway = pho_panel(runtime, InMemoryPluginOptionStore())
 
-    assert set(panel._combos) == {PLAIN_ROUTE, BBCODE_ROUTE}
-    # Nothing is chosen yet, so every route reads as automatic rather than
-    # showing a renderer as though somebody had picked it.
-    for combo in panel._combos.values():
-        assert combo.currentData() == ""
-        assert combo.currentText().startswith("Automatic")
-    assert "manuskript.pho-renderer.bbcode" in [
-        panel._combos[BBCODE_ROUTE].itemData(index)
-        for index in range(panel._combos[BBCODE_ROUTE].count())
+    # PHO renders BBCode natively and Markdown natively, and every other
+    # destination just takes the Markdown as the scene's own text. So there
+    # is exactly one decision to make, and only it gets a row.
+    assert set(panel._combos) == {BBCODE_ROUTE}
+
+    bbcode = panel._combos[BBCODE_ROUTE]
+    assert bbcode.currentData() == ""
+    assert bbcode.itemText(0) == "Automatic — PHO forum BBCode"
+    assert [
+        bbcode.itemData(index) for index in range(bbcode.count())
+    ] == [
+        "",
+        "manuskript.pho-renderer.bbcode",
+        "manuskript.pho-renderer.markdown",
     ]
+
+    # Everything else is one line naming the renderer once.
+    assert panel.noticeLabel.text() == (
+        "PHO portable Markdown: Plain text"
+    )
 
 
 def test_panel_saves_the_chosen_renderer():
