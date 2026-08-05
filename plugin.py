@@ -1,4 +1,9 @@
+from functools import partial
+
 from manuskript.plugins import (
+    BBCODE,
+    MARKDOWN,
+    ContentSignature,
     ExtensionDescriptor,
     OptionField,
     PageRendererContribution,
@@ -6,7 +11,6 @@ from manuskript.plugins import (
     PluginSettingsContribution,
 )
 
-from .converter import is_pho_page
 from .export_renderers import (
     BBCODE_STYLE,
     MARKDOWN_STYLE,
@@ -346,7 +350,16 @@ def activation_warning(source):
     )
 
 
+#: What a PHO page looks like. Core matches this, so the plugin is never
+#: handed the text of a document that is not a PHO page.
+PHO_SIGNATURE = ContentSignature(
+    starts_with=r"^PHO Interlude",
+    ends_with=r"^EOPHO Interlude",
+)
+
+
 def register(api):
+    markup = api.capability("markup.bbcode")
     api.register_page_type(
         PageTypeContribution(
             descriptor=ExtensionDescriptor(
@@ -358,7 +371,7 @@ def register(api):
                 ),
             ),
             property_label="PHO page",
-            detector=is_pho_page,
+            signature=PHO_SIGNATURE,
             parser_factory=PhoPresentationParser,
             renderer_factory=PhoPageRenderer,
             wizard_factory=PhoPageWizard,
@@ -378,7 +391,7 @@ def register(api):
             ),
             page_type_id="manuskript.pho-page",
             renderer_factory=PhoMarkdownRenderer,
-            target_formats=("markdown",),
+            target_formats=(MARKDOWN,),
             options=style_options(MARKDOWN_STYLE),
         )
     )
@@ -393,8 +406,8 @@ def register(api):
                 ),
             ),
             page_type_id="manuskript.pho-page",
-            renderer_factory=PhoBBCodeRenderer,
-            target_formats=("bbcode",),
+            renderer_factory=partial(PhoBBCodeRenderer, markup),
+            target_formats=(BBCODE,),
             options=style_options(BBCODE_STYLE),
             priority=100,
         )

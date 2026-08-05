@@ -1,5 +1,6 @@
 import html
 
+from manuskript.plugins import MARKDOWN as MARKDOWN_MEDIA_TYPE
 from manuskript.plugins import RenderedDocument
 
 from .export_renderers import MARKDOWN_STYLE, PhoMarkdownRenderer
@@ -28,7 +29,7 @@ class PhoPageRenderer:
             )
         markdown = PhoMarkdownRenderer().render(
             model,
-            "markdown",
+            MARKDOWN_MEDIA_TYPE,
             {},
         ).content
         if MARKDOWN is None:

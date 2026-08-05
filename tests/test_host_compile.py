@@ -13,6 +13,7 @@ from manuskript.models.outlineItem import outlineItem
 from manuskript.ui.plugins.export_adapter import (
     PluginConversionExportFormat,
 )
+from manuskript.media_types import BBCODE, MARKDOWN
 
 def test_export_dialog_loads_manager_and_restores_format(
         MWSampleProject):
@@ -94,8 +95,8 @@ def test_plugin_conversion_target_uses_the_compile_dialog(
                 extensions=(".bbcode",),
             ),
             Converter,
-            source_formats=("markdown",),
-            target_formats=("bbcode",),
+            source_formats=(MARKDOWN,),
+            target_formats=(BBCODE,),
         )
     )
     registry.install(
@@ -143,7 +144,7 @@ def test_native_bbcode_is_a_usable_compile_target(
 
         assert exporter.name == "Manuskript"
         assert output_format.isValid()
-        assert output_format.format_id == "bbcode"
+        assert output_format.media_type == BBCODE
         dialog.preview()
         assert dialog.previewWidget.toPlainText()
     finally:

@@ -1,10 +1,24 @@
 {
   "id": "manuskript.pho-pages",
   "name": "PHO Pages",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "api_version": 1,
   "entry_point": "plugin:register",
   "description": "Adds per-page PHO detection, rendering, editing, and export processing.",
   "author": "MustardBell",
-  "homepage": "https://github.com/MustardBell/manuskript-pho-pages"
+  "homepage": "https://github.com/MustardBell/manuskript-pho-pages",
+  "requires": [
+    "markup.bbcode",
+    "ui.export_routing"
+  ],
+  "media_types": [
+    "text/markdown",
+    "text/x-bbcode"
+  ],
+  "produces": [
+    "text/markdown",
+    "text/x-bbcode"
+  ],
+  "consumes": [],
+  "transforms": []
 }
