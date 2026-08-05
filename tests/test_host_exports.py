@@ -19,6 +19,8 @@ from manuskript.plugins.pho_pages.presentation import (
     PhoPresentationParser,
 )
 from manuskript.converters.markdownToBBCode import markdown_to_bbcode
+from manuskript.media_types import BBCODE, MARKDOWN
+from manuskript.media_types import HTML as HTML_MEDIA_TYPE
 from manuskript.enums import Outline
 from manuskript.exporter.manuskript.BBCode import BBCode
 from manuskript.exporter.manuskript.HTML import HTML
@@ -192,12 +194,12 @@ EOPHO Interlude"""
 
     markdown = PhoMarkdownRenderer().render(
         model,
-        "markdown",
+        MARKDOWN,
         {},
     ).content
     bbcode = bbcode_renderer().render(
         model,
-        "bbcode",
+        BBCODE,
         {},
     ).content
 
@@ -321,13 +323,13 @@ EOTHREAD
 EOPHO Interlude""",
     )
 
-    html_source = page_types.export_document(pho, "html")
-    bbcode = page_types.export_document(pho, "bbcode")
+    html_source = page_types.export_document(pho, HTML_MEDIA_TYPE)
+    bbcode = page_types.export_document(pho, BBCODE)
 
-    assert html_source.source_format == "markdown"
+    assert html_source.source_format == MARKDOWN
     assert "MARKDOWN-SEPARATOR" in html_source.content
     assert "BBCODE-SEPARATOR" not in html_source.content
-    assert bbcode.source_format == "bbcode"
+    assert bbcode.source_format == BBCODE
     assert "[CENTER]BBCODE-SEPARATOR[/CENTER]" in bbcode.content
     assert "[plain]@[/plain]Maven" in bbcode.content
 
@@ -406,9 +408,8 @@ def render_pho_bbcode(source):
     from manuskript.plugins.pho_pages.presentation import (
         PhoPresentationBuilder,
     )
-
     presentation = PhoPresentationBuilder().build(PhoPage.parse(source))
-    return bbcode_renderer().render(presentation, "bbcode", {}).content
+    return bbcode_renderer().render(presentation, BBCODE, {}).content
     assert render_pho_bbcode(serialized)
 
 

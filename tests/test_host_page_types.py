@@ -24,6 +24,7 @@ from manuskript.ui.editors.markdownPresentation import (
 )
 from manuskript.ui.plugins.page_types import PageTypeService
 from manuskript.ui.views.propertiesView import propertiesView
+from manuskript.media_types import BBCODE, HTML, MARKDOWN
 
 
 class Parser:
@@ -50,7 +51,7 @@ def make_service(activation_warning=None, source_provider=None):
         ExtensionDescriptor("example.pho-renderer", "PHO renderer"),
         page_type_id="example.pho",
         renderer_factory=Renderer,
-        target_formats=("bbcode", "markdown"),
+        target_formats=(BBCODE, MARKDOWN),
     )
     registry = PluginRegistry()
     registrar = registry.registrar("example.plugin")
@@ -138,8 +139,8 @@ def test_active_page_type_owns_reading_live_and_export_behavior():
         MarkdownPresentationMode.LIVE_PREVIEW,
         MarkdownPresentationMode.READING,
     )
-    assert service.export_document(item, "bbcode") == (
-        PageExportDocument("PHO:ordinary source", "bbcode")
+    assert service.export_document(item, BBCODE) == (
+        PageExportDocument("PHO:ordinary source", BBCODE)
     )
 
 
@@ -149,11 +150,11 @@ def test_page_renderer_uses_markdown_fallback_until_an_exact_route_is_selected()
     item.setData(Outline.text, "ordinary source")
     service.set_enabled(item, contribution, True)
 
-    fallback = service.export_document(item, "html")
+    fallback = service.export_document(item, HTML)
 
     assert fallback == PageExportDocument(
         "PHO:ordinary source",
-        "markdown",
+        MARKDOWN,
     )
 
     class HtmlRenderer:
@@ -173,7 +174,7 @@ def test_page_renderer_uses_markdown_fallback_until_an_exact_route_is_selected()
         ),
         page_type_id="example.pho",
         renderer_factory=HtmlRenderer,
-        target_formats=("html",),
+        target_formats=(HTML,),
         options=(OptionField("style", "Style", default="classic"),),
     )
     registrar = service.registry.registrar("another.plugin")
@@ -187,12 +188,12 @@ def test_page_renderer_uses_markdown_fallback_until_an_exact_route_is_selected()
         "example.pho",
         "html:html",
         "another.pho-html",
-        representation_format="html",
+        representation_format=HTML,
     )
 
     rendered = service.export_document(
         item,
-        "html",
+        HTML,
         route_id="html:html",
     )
 
@@ -202,7 +203,7 @@ def test_page_renderer_uses_markdown_fallback_until_an_exact_route_is_selected()
     ) == "another.pho-html"
     assert rendered == PageExportDocument(
         '<section data-style="custom">PHO:ordinary source</section>',
-        "html",
+        HTML,
     )
 
 

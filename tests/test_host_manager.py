@@ -3,6 +3,10 @@
 import json
 from pathlib import Path
 
+from manuskript.exporter.page_routes import page_renderer_route_id
+from manuskript.media_types import BBCODE, MARKDOWN, PLAIN
+PLAIN_ROUTE = page_renderer_route_id(PLAIN, MARKDOWN)
+BBCODE_ROUTE = page_renderer_route_id(BBCODE, BBCODE)
 from manuskript.plugins.runtime import PluginRuntime, PluginStatus
 from manuskript.services.plugin_preferences import (
     InMemoryPluginPreferences,
@@ -128,10 +132,10 @@ def test_preinstalled_plugin_can_be_enabled_and_disabled(monkeypatch):
 PHO_ID = "manuskript.pho-pages"
 ROUTES = (
     PageRendererRoute(
-        "plain:markdown", "Plain text", "plain", "markdown", "Manuskript",
+        PLAIN_ROUTE, "Plain text", PLAIN, MARKDOWN, "Manuskript",
     ),
     PageRendererRoute(
-        "bbcode:bbcode", "BBCode", "bbcode", "bbcode", "Manuskript",
+        BBCODE_ROUTE, "BBCode", BBCODE, BBCODE, "Manuskript",
     ),
 )
 
@@ -174,11 +178,11 @@ def test_panel_offers_one_renderer_choice_per_export_format():
     runtime = pho_runtime()
     panel, _context = pho_panel(runtime, InMemoryPluginOptionStore())
 
-    assert set(panel._combos) == {"plain:markdown", "bbcode:bbcode"}
-    assert panel._combos["bbcode:bbcode"].currentData() == (
+    assert set(panel._combos) == {PLAIN_ROUTE, BBCODE_ROUTE}
+    assert panel._combos[BBCODE_ROUTE].currentData() == (
         "manuskript.pho-renderer.bbcode"
     )
-    plain = panel._combos["plain:markdown"]
+    plain = panel._combos[PLAIN_ROUTE]
     assert plain.currentData() == "manuskript.pho-renderer.markdown"
     assert "compatible fallback" not in plain.currentText()
 
@@ -187,14 +191,14 @@ def test_panel_saves_the_chosen_renderer():
     runtime = pho_runtime()
     store = InMemoryPluginOptionStore()
     panel, context = pho_panel(runtime, store)
-    combo = panel._combos["bbcode:bbcode"]
+    combo = panel._combos[BBCODE_ROUTE]
 
     combo.setCurrentIndex(
         combo.findData("manuskript.pho-renderer.markdown")
     )
 
     assert context.page_routing.selected(
-        "manuskript.pho-page", "bbcode:bbcode"
+        "manuskript.pho-page", BBCODE_ROUTE
     ) == "manuskript.pho-renderer.markdown"
 
 
@@ -218,7 +222,6 @@ def test_manager_shows_the_pho_panel_only_under_pho(MWEmptyProject):
     dialog = window.pluginUi.manager
     try:
         from PyQt5.QtCore import Qt
-
         for index in range(dialog.pluginList.topLevelItemCount()):
             item = dialog.pluginList.topLevelItem(index)
             plugin_id = item.data(0, Qt.UserRole)

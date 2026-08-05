@@ -1,6 +1,6 @@
 import re
 
-from manuskript.plugins import PageExportDocument
+from manuskript.plugins import BBCODE, MARKDOWN, PageExportDocument
 
 from .presentation import PhoPresentation
 
@@ -353,7 +353,7 @@ class PhoExportRenderer:
 class PhoMarkdownRenderer(PhoExportRenderer):
     """Portable PHO projection used by ordinary export pipelines."""
 
-    output_format = "markdown"
+    output_format = MARKDOWN
     default_style = MARKDOWN_STYLE
 
     def render_presentation(self, model, style):
@@ -475,7 +475,7 @@ class PhoMarkdownRenderer(PhoExportRenderer):
 class PhoBBCodeRenderer(PhoExportRenderer):
     """Direct PHO→BBCode renderer with forum-specific safety rules."""
 
-    output_format = "bbcode"
+    output_format = BBCODE
     default_style = BBCODE_STYLE
 
     def __init__(self, markup):

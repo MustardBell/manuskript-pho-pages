@@ -8,6 +8,7 @@ from manuskript.plugins.pho_pages.plugin import (
     CONTENT_FIELDS,
     FORMAT_FIELDS,
 )
+from manuskript.media_types import BBCODE, MARKDOWN
 from manuskript.plugins.pho_pages.presentation import (
     PhoPresentationParser,
 )
@@ -35,9 +36,8 @@ def render_pho_bbcode(source):
     from manuskript.plugins.pho_pages.presentation import (
         PhoPresentationBuilder,
     )
-
     presentation = PhoPresentationBuilder().build(PhoPage.parse(source))
-    return bbcode_renderer().render(presentation, "bbcode", {}).content
+    return bbcode_renderer().render(presentation, BBCODE, {}).content
 
 
 SOURCE = """PHO Interlude
@@ -89,7 +89,7 @@ def test_presentation_keeps_counts_and_original_post_policy_semantic():
 def test_markdown_renderer_applies_content_date_and_structure_options():
     rendered = PhoMarkdownRenderer().render(
         presentation(),
-        "markdown",
+        MARKDOWN,
         {
             "separator_template": "SEPARATOR<{separator}>",
             "welcome_title": "Custom forum",
@@ -127,7 +127,7 @@ def test_markdown_renderer_applies_content_date_and_structure_options():
 def test_bbcode_renderer_applies_its_own_quote_and_safety_templates():
     rendered = bbcode_renderer().render(
         presentation(),
-        "bbcode",
+        BBCODE,
         {
             "thread_heading_template": "BBCODE<{content}>",
             "date_template": "DATE<{iso}>",
@@ -148,7 +148,7 @@ def test_bbcode_renderer_applies_its_own_quote_and_safety_templates():
 def test_default_bbcode_quote_has_real_attribute_quotes():
     rendered = bbcode_renderer().render(
         presentation(),
-        "bbcode",
+        BBCODE,
         {},
     ).content
 

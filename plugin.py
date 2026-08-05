@@ -1,6 +1,8 @@
 from functools import partial
 
 from manuskript.plugins import (
+    BBCODE,
+    MARKDOWN,
     ContentSignature,
     ExtensionDescriptor,
     OptionField,
@@ -389,7 +391,7 @@ def register(api):
             ),
             page_type_id="manuskript.pho-page",
             renderer_factory=PhoMarkdownRenderer,
-            target_formats=("markdown",),
+            target_formats=(MARKDOWN,),
             options=style_options(MARKDOWN_STYLE),
         )
     )
@@ -405,7 +407,7 @@ def register(api):
             ),
             page_type_id="manuskript.pho-page",
             renderer_factory=partial(PhoBBCodeRenderer, markup),
-            target_formats=("bbcode",),
+            target_formats=(BBCODE,),
             options=style_options(BBCODE_STYLE),
             priority=100,
         )
