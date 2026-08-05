@@ -13,6 +13,33 @@ from manuskript.plugins.pho_pages.presentation import (
 )
 
 
+def bbcode_renderer():
+    """Build the renderer the way register() does, with an injected markup.
+
+    Tests may use core directly; plugin runtime code may not, which is why
+    the renderer takes its converter as an argument.
+    """
+    from manuskript.plugins.capabilities import (
+        CAPABILITY_MARKUP_BBCODE,
+        grant,
+    )
+
+    granted, missing = grant([CAPABILITY_MARKUP_BBCODE])
+    assert not missing, missing
+    return PhoBBCodeRenderer(granted[CAPABILITY_MARKUP_BBCODE])
+
+
+def render_pho_bbcode(source):
+    """Replacement for the removed convert_pho_page helper."""
+    from manuskript.plugins.pho_pages.model import PhoPage
+    from manuskript.plugins.pho_pages.presentation import (
+        PhoPresentationBuilder,
+    )
+
+    presentation = PhoPresentationBuilder().build(PhoPage.parse(source))
+    return bbcode_renderer().render(presentation, "bbcode", {}).content
+
+
 SOURCE = """PHO Interlude
 SETTINGS\treader:Vaduz\tposts:7\tmessages:3\tdate:2011-02-04T12:00:00-05:00
 WELCOME
@@ -98,7 +125,7 @@ def test_markdown_renderer_applies_content_date_and_structure_options():
 
 
 def test_bbcode_renderer_applies_its_own_quote_and_safety_templates():
-    rendered = PhoBBCodeRenderer().render(
+    rendered = bbcode_renderer().render(
         presentation(),
         "bbcode",
         {
@@ -119,7 +146,7 @@ def test_bbcode_renderer_applies_its_own_quote_and_safety_templates():
 
 
 def test_default_bbcode_quote_has_real_attribute_quotes():
-    rendered = PhoBBCodeRenderer().render(
+    rendered = bbcode_renderer().render(
         presentation(),
         "bbcode",
         {},

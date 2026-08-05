@@ -1,6 +1,5 @@
 import re
 
-from manuskript.converters.markdownToBBCode import markdown_to_bbcode
 from manuskript.plugins import PageExportDocument
 
 from .presentation import PhoPresentation
@@ -479,10 +478,18 @@ class PhoBBCodeRenderer(PhoExportRenderer):
     output_format = "bbcode"
     default_style = BBCODE_STYLE
 
+    def __init__(self, markup):
+        """``markup`` converts Markdown to BBCode.
+
+        Supplied by the host through the markup.bbcode capability rather
+        than imported, so this plugin depends on the published surface only.
+        """
+        self.markup = markup
+
     def render_presentation(self, model, style):
         blocks = []
         if model.prefix_markdown.strip():
-            blocks.append(markdown_to_bbcode(
+            blocks.append(self.markup.convert(
                 model.prefix_markdown.strip("\n")
             ))
         if model.show_welcome:
@@ -491,7 +498,7 @@ class PhoBBCodeRenderer(PhoExportRenderer):
             self.render_thread(thread, style) for thread in model.threads
         )
         if model.suffix_markdown.strip():
-            blocks.append(markdown_to_bbcode(
+            blocks.append(self.markup.convert(
                 model.suffix_markdown.strip("\n")
             ))
         separator = self.control_text(style["document_separator"])
@@ -578,6 +585,8 @@ class PhoBBCodeRenderer(PhoExportRenderer):
             ),
             value.strip(),
         )
-        return markdown_to_bbcode(value).replace(
+        # The mention template is a per-render style value, so this stays a
+        # post-pass rather than a converter rule.
+        return self.markup.convert(value).replace(
             "@", style["mention_template"]
         )

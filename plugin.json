@@ -6,5 +6,8 @@
   "entry_point": "plugin:register",
   "description": "Adds per-page PHO detection, rendering, editing, and export processing.",
   "author": "MustardBell",
-  "homepage": "https://github.com/MustardBell/manuskript-pho-pages"
+  "homepage": "https://github.com/MustardBell/manuskript-pho-pages",
+  "requires": [
+    "markup.bbcode"
+  ]
 }

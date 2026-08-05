@@ -6,10 +6,6 @@ from types import SimpleNamespace
 import markdown as markdown_library
 import pytest
 
-from manuskript.plugins.pho_pages.converter import (
-    convert_pho_page,
-    convert_document,
-)
 from manuskript.plugins.pho_pages.renderer import PhoPageRenderer
 from manuskript.plugins.pho_pages.model import (
     PhoModelError,
@@ -132,7 +128,7 @@ EOPHO Interlude
 After
 """
 
-    converted = convert_document(source)
+    converted = render_pho_bbcode(source)
 
     assert "PHO Interlude" not in converted
     assert "EOPHO Interlude" not in converted
@@ -172,7 +168,7 @@ EOPHO Interlude"""
     assert "Welcome to the Parahumans Online message boards" in rendered.html
     assert "<strong>♦ Topic: A question</strong>" in rendered.html
     assert "Places ► America" in rendered.html
-    assert convert_pho_page(source).startswith("[CENTER]")
+    assert render_pho_bbcode(source).startswith("[CENTER]")
 
 
 def test_pho_semantics_render_portable_markdown_or_direct_safe_bbcode():
@@ -199,7 +195,7 @@ EOPHO Interlude"""
         "markdown",
         {},
     ).content
-    bbcode = PhoBBCodeRenderer().render(
+    bbcode = bbcode_renderer().render(
         model,
         "bbcode",
         {},
@@ -386,7 +382,34 @@ After the forum"""
     assert reparsed.threads[0].original_post == (
         page.threads[0].original_post
     )
-    assert convert_pho_page(serialized)
+
+
+def bbcode_renderer():
+    """Build the renderer the way register() does, with an injected markup.
+
+    Tests may use core directly; plugin runtime code may not, which is why
+    the renderer takes its converter as an argument.
+    """
+    from manuskript.plugins.capabilities import (
+        CAPABILITY_MARKUP_BBCODE,
+        grant,
+    )
+
+    granted, missing = grant([CAPABILITY_MARKUP_BBCODE])
+    assert not missing, missing
+    return PhoBBCodeRenderer(granted[CAPABILITY_MARKUP_BBCODE])
+
+
+def render_pho_bbcode(source):
+    """Replacement for the removed convert_pho_page helper."""
+    from manuskript.plugins.pho_pages.model import PhoPage
+    from manuskript.plugins.pho_pages.presentation import (
+        PhoPresentationBuilder,
+    )
+
+    presentation = PhoPresentationBuilder().build(PhoPage.parse(source))
+    return bbcode_renderer().render(presentation, "bbcode", {}).content
+    assert render_pho_bbcode(serialized)
 
 
 def test_pho_page_model_rejects_malformed_replies_before_editing():
