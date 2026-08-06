@@ -10,6 +10,9 @@ from manuskript.media_types import BBCODE, MARKDOWN, PLAIN
 PLAIN_ROUTE = page_renderer_route_id(PLAIN, MARKDOWN)
 BBCODE_ROUTE = page_renderer_route_id(BBCODE, BBCODE)
 from manuskript.plugins.runtime import PluginRuntime, PluginStatus
+from manuskript.services.plugin_contributions import (
+    PluginContributionService,
+)
 from manuskript.services.plugin_preferences import (
     InMemoryPluginPreferences,
 )
@@ -27,6 +30,15 @@ from manuskript.plugins.capabilities import (
 from manuskript.plugins.errors import PluginScopeError
 
 
+def contributions(runtime):
+    """What the dialog changes the plugin set through.
+
+    Enabling goes through the contribution service, so that every window
+    hears about it rather than only the one the dialog belongs to.
+    """
+    return PluginContributionService(runtime)
+
+
 def test_manager_discovers_disabled_plugin_without_loading_it(
         tmp_path):
     create_plugin(tmp_path)
@@ -35,7 +47,7 @@ def test_manager_discovers_disabled_plugin_without_loading_it(
         InMemoryPluginPreferences(),
     )
 
-    dialog = PluginManagerDialog(runtime)
+    dialog = PluginManagerDialog(contributions(runtime))
 
     assert dialog.pluginList.topLevelItemCount() == 1
     assert (
@@ -52,14 +64,16 @@ def test_manager_enables_and_disables_selected_plugin(
         [tmp_path],
         InMemoryPluginPreferences(),
     )
-    dialog = PluginManagerDialog(runtime)
+    dialog = PluginManagerDialog(contributions(runtime))
     monkeypatch.setattr(
         dialog,
         "_confirm_enable",
         lambda _plugin_id: True,
     )
     changes = []
-    dialog.pluginsChanged.connect(lambda: changes.append(True))
+    dialog.contributions.changed.connect(
+        lambda: changes.append(True)
+    )
 
     dialog.enable_selected()
 
@@ -97,7 +111,7 @@ def test_manager_reports_invalid_manifests(tmp_path):
         InMemoryPluginPreferences(),
     )
 
-    dialog = PluginManagerDialog(runtime)
+    dialog = PluginManagerDialog(contributions(runtime))
 
     assert "Discovery problems" in dialog.discoveryLabel.text()
     assert "Invalid plugin ID" in dialog.discoveryLabel.text()
@@ -113,7 +127,7 @@ def test_preinstalled_plugin_can_be_enabled_and_disabled(monkeypatch):
     runtime.discover()
     runtime.load_enabled()
 
-    dialog = PluginManagerDialog(runtime)
+    dialog = PluginManagerDialog(contributions(runtime))
     monkeypatch.setattr(
         dialog,
         "_confirm_enable",
