@@ -5,6 +5,8 @@ import json
 import pytest
 from pathlib import Path
 
+from PyQt5.QtCore import Qt
+
 from manuskript.exporter.page_routes import page_renderer_route_id
 from manuskript.media_types import BBCODE, MARKDOWN, PLAIN
 PLAIN_ROUTE = page_renderer_route_id(PLAIN, MARKDOWN)
@@ -28,6 +30,24 @@ from manuskript.plugins.capabilities import (
     CAPABILITY_UI_EXPORT_ROUTING,
 )
 from manuskript.plugins.errors import PluginScopeError
+
+
+def select(dialog, plugin_id):
+    """Pick this plugin's row in the manager.
+
+    The dialog opens on the first row, and which plugin that is depends on
+    what else happens to be installed beside this one -- the list is sorted
+    by plugin ID, and neighbours arrive and leave without asking. A test
+    about PHO says which row it means.
+    """
+    for index in range(dialog.pluginList.topLevelItemCount()):
+        item = dialog.pluginList.topLevelItem(index)
+        if item.data(0, Qt.UserRole) == plugin_id:
+            dialog.pluginList.setCurrentItem(item)
+            return item
+    raise AssertionError(
+        "{} is not listed in the plugin manager.".format(plugin_id)
+    )
 
 
 def contributions(runtime):
@@ -133,6 +153,7 @@ def test_preinstalled_plugin_can_be_enabled_and_disabled(monkeypatch):
         "_confirm_enable",
         lambda _plugin_id: True,
     )
+    select(dialog, "manuskript.pho-pages")
 
     assert "Installed plugin" in dialog.metadataLabel.text()
     assert dialog.enableButton.isEnabled()
@@ -291,7 +312,6 @@ def test_manager_shows_the_pho_panel_only_under_pho(MWEmptyProject):
     window.pluginUi.show_manager()
     dialog = window.pluginUi.manager
     try:
-        from PyQt5.QtCore import Qt
         for index in range(dialog.pluginList.topLevelItemCount()):
             item = dialog.pluginList.topLevelItem(index)
             plugin_id = item.data(0, Qt.UserRole)
