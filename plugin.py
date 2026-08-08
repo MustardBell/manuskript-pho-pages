@@ -20,6 +20,7 @@ from .export_renderers import (
 from .model import PhoPage, split_markdown_frontmatter
 from .presentation import PhoPresentationParser
 from .renderer import PhoPageRenderer
+from .identity import PAGE_TYPE_ID
 from .settings_panel import build_settings_panel
 from .wizard import PhoPageWizard
 
@@ -360,10 +361,11 @@ PHO_SIGNATURE = ContentSignature(
 
 def register(api):
     markup = api.capability("markup.bbcode")
+    conversion = api.capability("conversion")
     api.register_page_type(
         PageTypeContribution(
             descriptor=ExtensionDescriptor(
-                id="manuskript.pho-page",
+                id=PAGE_TYPE_ID,
                 name="PHO page",
                 description=(
                     "Structured Parahumans Online page with a full "
@@ -373,7 +375,9 @@ def register(api):
             property_label="PHO page",
             signature=PHO_SIGNATURE,
             parser_factory=PhoPresentationParser,
-            renderer_factory=PhoPageRenderer,
+            renderer_factory=partial(
+                PhoPageRenderer, conversion, PAGE_TYPE_ID,
+            ),
             wizard_factory=PhoPageWizard,
             activation_warning=activation_warning,
         )
@@ -389,7 +393,7 @@ def register(api):
                     "ordinary conversion pipelines."
                 ),
             ),
-            page_type_id="manuskript.pho-page",
+            page_type_id=PAGE_TYPE_ID,
             renderer_factory=PhoMarkdownRenderer,
             target_formats=(MARKDOWN,),
             options=style_options(MARKDOWN_STYLE),
@@ -405,7 +409,7 @@ def register(api):
                     "and mention neutralization."
                 ),
             ),
-            page_type_id="manuskript.pho-page",
+            page_type_id=PAGE_TYPE_ID,
             renderer_factory=partial(PhoBBCodeRenderer, markup),
             target_formats=(BBCODE,),
             options=style_options(BBCODE_STYLE),

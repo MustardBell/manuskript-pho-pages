@@ -6,7 +6,7 @@ including whether to ask for the routing panel at all. Core owns the widget
 and fixes it once for every plugin; it does not put it here uninvited.
 """
 
-PAGE_TYPE_ID = "manuskript.pho-page"
+from .identity import PAGE_TYPE_ID
 
 #: Declared in plugin.json, so asking for it is allowed.
 EXPORT_ROUTING = "ui.export_routing"

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import markdown as markdown_library
 import pytest
 
+from manuskript.plugins.pho_pages.identity import PAGE_TYPE_ID
 from manuskript.plugins.pho_pages.renderer import PhoPageRenderer
 from manuskript.plugins.pho_pages.model import (
     PhoModelError,
@@ -18,7 +19,12 @@ from manuskript.plugins.pho_pages.export_renderers import (
 from manuskript.plugins.pho_pages.presentation import (
     PhoPresentationParser,
 )
+from manuskript.converters.conversion_service import conversion_service
 from manuskript.converters.markdownToBBCode import markdown_to_bbcode
+from manuskript.plugins.api import (
+    ConversionAugmentationContribution,
+    ExtensionDescriptor,
+)
 from manuskript.media_types import BBCODE, MARKDOWN
 from manuskript.media_types import HTML as HTML_MEDIA_TYPE
 from manuskript.enums import Outline
@@ -162,7 +168,7 @@ EOOP
 EOTHREAD
 EOPHO Interlude"""
 
-    rendered = PhoPageRenderer().render(
+    rendered = PhoPageRenderer(conversion_service()).render(
         PhoPresentationParser().parse(source)
     )
 
@@ -171,6 +177,106 @@ EOPHO Interlude"""
     assert "<strong>♦ Topic: A question</strong>" in rendered.html
     assert "Places ► America" in rendered.html
     assert render_pho_bbcode(source).startswith("[CENTER]")
+
+
+PAGE = """PHO Interlude
+SETTINGS\treader:Vaduz\tposts:10\tdate:2011-02-04T12:00:00-05:00
+THREAD
+TOPIC\tA question
+POSTER\tMaven
+BOOP
+An original post
+EOOP
+EOTHREAD
+EOPHO Interlude"""
+
+
+class Shouting(markdown_library.Extension):
+    """Something added to the Markdown-to-HTML conversion, with an effect
+    nothing else could have produced."""
+
+    def extendMarkdown(self, md):
+        md.preprocessors.register(_Shout(md), "shouting", 30)
+
+
+class _Shout(markdown_library.preprocessors.Preprocessor):
+    def run(self, lines):
+        return [line.upper() for line in lines]
+
+
+def augmentation(page_types=()):
+    return ConversionAugmentationContribution(
+        descriptor=ExtensionDescriptor(id="vendor.shout", name="Shouting"),
+        source_format=MARKDOWN,
+        target_format=HTML_MEDIA_TYPE,
+        augmentation_factory=Shouting,
+        page_types=page_types,
+    )
+
+
+def read(runtime, source=PAGE):
+    """What a PHO reading view shows, built the way the host builds it.
+
+    Parser and renderer both come from the registered contribution: the
+    runtime loads a plugin under its own module identity, so a model parsed
+    by the imported class is not the one that plugin's renderer accepts.
+    """
+    page_type = runtime.registry.page_types[0]
+    model = page_type.parser_factory().parse(source)
+    return page_type.renderer_factory().render(model).html
+
+
+def add(registry, contribution):
+    registrar = registry.registrar("vendor.markup")
+    registrar.register_conversion_augmentation(contribution)
+    registry.install("vendor.markup", registrar.contributions)
+
+
+def test_the_reading_view_shows_what_others_added_to_the_conversion():
+    """The reported bug: a list written 1) 2) 3) read as a list in one
+    rendering and as a paragraph in this one, because this one converted the
+    Markdown itself and so opted out of every addition made to that
+    conversion. PHO learns nothing about the additions -- it asks the host
+    for HTML and receives them.
+    """
+    runtime = pho_runtime()
+    add(runtime.registry, augmentation())
+
+    assert "AN ORIGINAL POST" in read(runtime)
+
+
+def test_an_addition_meant_for_pho_pages_reaches_the_pho_reading_view():
+    """An addition may say which page types it is for. This view names the
+    page type it is showing, so one written for PHO applies here and one
+    written for somebody else's pages does not.
+    """
+    for_pho = pho_runtime()
+    add(for_pho.registry, augmentation(page_types=(PAGE_TYPE_ID,)))
+    for_others = pho_runtime()
+    add(for_others.registry, augmentation(page_types=("vendor.other-page",)))
+
+    assert "AN ORIGINAL POST" in read(for_pho)
+    assert "AN ORIGINAL POST" not in read(for_others)
+
+
+def test_without_a_markdown_to_html_route_the_source_is_still_readable():
+    """An installation whose Markdown library is missing offers no such
+    route. Showing the Markdown beats showing an empty view, and beats an
+    ImportError from a library this plugin does not know it depends on.
+    """
+    unable = SimpleNamespace(
+        can_convert=lambda source, target: False,
+        convert=lambda *args, **kwargs: pytest.fail(
+            "Converted over a route the host said it could not perform."
+        ),
+    )
+
+    rendered = PhoPageRenderer(unable).render(
+        PhoPresentationParser().parse(PAGE)
+    )
+
+    assert "<pre>" in rendered.html
+    assert "♦ Topic: A question" in rendered.html
 
 
 def test_pho_semantics_render_portable_markdown_or_direct_safe_bbcode():

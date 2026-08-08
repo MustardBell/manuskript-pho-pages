@@ -6,6 +6,8 @@ PHO Pages is a plugin for [MustardBell's Manuskript fork](https://github.com/Mus
 
 The plugin requires Manuskript Plugin API 1. Use it with a version of [MustardBell's Manuskript fork](https://github.com/MustardBell/manuskript) that provides that API. The original [`olivierkes/manuskript`](https://github.com/olivierkes/manuskript) does not currently provide the plugin API and is therefore not compatible with this plugin.
 
+It also asks the host for three services by name — `conversion`, `markup.bbcode` and `ui.export_routing`. A build of the fork that does not offer all three reports the plugin as unsatisfied and does not run it, rather than loading it half-working.
+
 ## What it provides
 
 - A per-page **PHO page** property instead of a global editor mode.
